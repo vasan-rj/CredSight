@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Data
+data/
+# Env / secrets
+.env
+.env.local
+*.pem
+
+# Tooling
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Models / generated artifacts (regenerate from generators; keep repo lean)
+*.ubj
+*.joblib
+*.pkl
+
+# Generated synthetic data (reproducible from generators) — keep the generators, not the output
+data/synthetic/*.json
+!data/synthetic/.gitkeep
+
+# Agent virtual filesystem working dirs (per-run, disposable)
+/canonical/
+/features/
+/recon/
+/audit/
+/var/
+
+# GBrain learnings captured at runtime (seeded policies/ are committed; learned/ is not)
+src/credsight/knowledge/learned/
+
+# Frontend (Node)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.idea/
+*.swp

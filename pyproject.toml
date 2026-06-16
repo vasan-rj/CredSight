@@ -1,0 +1,84 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "credsight"
+version = "0.1.0"
+description = "Agentic credit-underwriting OS for credit-invisible MSMEs (IDBI Innovate 2026, Track 03)"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+
+dependencies = [
+    # Decisioning core (deterministic — never an LLM)
+    "xgboost>=2.0",
+    "scikit-learn>=1.4",
+    "shap>=0.45",
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pydantic>=2.6",
+    # Agent runtime (LangGraph works on 3.10; the orchestrator graph + HITL run on it)
+    "langgraph>=1.0",
+    "langchain-anthropic>=0.2",
+    # API
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    # Config
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+# deepagents LLM planning/subagent supervisor (agents/orchestrator.build_deep_agent).
+# The LangGraph orchestrator (agents/graph.py) runs without it; this adds the LLM layer.
+agent = [
+    "deepagents",
+]
+# MCP tool servers (one per external system).
+mcp = [
+    "mcp>=1.0",
+]
+# Primary store (Postgres) for profiles/scores/applications.
+storage = [
+    "psycopg[binary]>=3.1",
+]
+# Real knowledge-brain backends (optional; default is the dependency-free lexical index):
+#   - Docling: PDF/DOCX -> Markdown parse
+#   - pgvector backend: semantic retrieval (sentence-transformers + pgvector), with
+#     cocoindex-memoized incremental embedding. Needs Postgres+pgvector (CREDSIGHT_KNOWLEDGE_DB_URL).
+knowledge = [
+    "docling>=2.0",
+    "cocoindex>=1.0",
+    "sentence-transformers>=3.0",
+    "pgvector>=0.3",
+    "psycopg[binary]>=3.1",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+    "mypy>=1.10",
+]
+obs = [
+    "langsmith>=0.1",
+    "opentelemetry-sdk>=1.25",
+]
+
+[project.scripts]
+credsight-gen-data = "credsight.data.generators.generate:main"
+credsight-train = "credsight.scoring.train:main"
+credsight-eval = "credsight.scoring.eval:main"
+credsight-api = "credsight.api.app:main"
+credsight-mcp-ingestion = "credsight.mcp_servers.ingestion_server:main"
+credsight-mcp-action = "credsight.mcp_servers.action_server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/credsight"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

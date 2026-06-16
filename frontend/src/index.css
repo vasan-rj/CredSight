@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+/* ── CredSight "Ledger" design system ──────────────────────────────────────
+   Warm editorial trust. Ivory paper, deep ink, emerald = trust/growth,
+   amber = the human/HITL signal. Fraunces (display) + Hanken Grotesk (body)
+   + JetBrains Mono (every datum). Tailwind v4 is CSS-first: tokens live here.
+*/
+
+@theme {
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+
+  /* Paper + ink */
+  --color-ivory: #f6f2e9; /* canvas */
+  --color-paper: #fdfbf5; /* cards / raised surfaces */
+  --color-ink: #1a160f; /* primary text */
+  --color-ink-soft: #6c6356; /* secondary text */
+  --color-ink-faint: #9c9384; /* tertiary / captions */
+  --color-line: #e7dfce; /* hairline border */
+  --color-line-strong: #d6cbb2;
+
+  /* Emerald — trust, growth, money, "go" */
+  --color-emerald: #1f6b4a;
+  --color-emerald-deep: #14492f;
+  --color-emerald-soft: #e7efe6;
+
+  /* Amber — the human, the HITL pause, confidence, "wait here" */
+  --color-amber: #bf7327;
+  --color-amber-deep: #82490f;
+  --color-amber-soft: #f6ead4;
+
+  /* Rose — risk, refer, reject */
+  --color-rose: #b0392b;
+  --color-rose-deep: #7a2418;
+  --color-rose-soft: #f4e2dc;
+
+  /* Slate-blue — neutral data / consent */
+  --color-azure: #355e7a;
+  --color-azure-soft: #e4ebf0;
+
+  --radius-card: 18px;
+}
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--color-ivory);
+    color: var(--color-ink);
+    font-feature-settings: "ss01" 1;
+  }
+
+  /* Paper grain — gives the ivory canvas physical depth instead of a flat fill. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Tabular figures everywhere we show numbers in mono. */
+  .font-mono {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "zero" 1;
+  }
+}
+
+/* ── Motion ──────────────────────────────────────────────────────────────
+   CSS-only. One orchestrated page load (staggered reveal) plus the two
+   signature instrument animations: the score ring drawing and gauges filling.
+*/
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes draw-ring {
+  from {
+    stroke-dashoffset: var(--circ);
+  }
+  to {
+    stroke-dashoffset: var(--dash);
+  }
+}
+
+@keyframes fill-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--w, 1));
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+
+@layer utilities {
+  .reveal {
+    opacity: 0;
+    animation: reveal-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .ring-anim {
+    animation: draw-ring 1.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .bar-anim {
+    transform-origin: left center;
+    transform: scaleX(0);
+    animation: fill-bar 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .pulse-dot {
+    animation: pulse-dot 1.6s ease-in-out infinite;
+  }
+
+  /* Hide grain when the user prefers reduced motion is irrelevant; but kill
+     the load + instrument animations so nothing moves. */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .ring-anim,
+    .bar-anim,
+    .pulse-dot {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+}

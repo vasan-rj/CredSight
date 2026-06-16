@@ -1,0 +1,44 @@
+# CredSight Python dependencies.
+# pyproject.toml is the source of truth; this file mirrors it for `pip install -r`.
+#   Core + tests run with just the "decisioning core" block below.
+#   Install the rest as each layer comes online.
+
+# --- Decisioning core (deterministic — never an LLM) ---
+xgboost>=2.0
+scikit-learn>=1.4
+shap>=0.45
+numpy>=1.26
+pandas>=2.2
+pydantic>=2.6
+
+# --- Config ---
+python-dotenv>=1.0
+
+# --- Agent harness + runtime (wire days 15-17) ---
+deepagents
+langgraph>=0.2
+langchain-anthropic>=0.2
+
+# --- MCP servers ---
+mcp>=1.0
+
+# --- API ---
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# --- Storage / search ---
+psycopg[binary]>=3.1
+
+# --- Knowledge brain (optional extra; install when wiring days 11-14) ---
+# docling>=2.0
+# cocoindex
+
+# --- Observability (optional) ---
+# langsmith>=0.1
+# opentelemetry-sdk>=1.25
+
+# --- Dev ---
+pytest>=8.0
+pytest-asyncio>=0.23
+ruff>=0.5
+mypy>=1.10
