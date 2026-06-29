@@ -8,7 +8,7 @@ import type { RunResult } from "../types";
 import { Card, SectionLabel, prettyFeature } from "./ui";
 
 const STATUS: Record<RunResult["status"], { text: string; tone: string; dot: string }> = {
-  pending_human: { text: "Awaiting human approval", tone: "border-amber/40 bg-amber-soft text-amber-deep", dot: "bg-amber" },
+  pending_human: { text: "Human decision required — agent paused, as designed", tone: "border-amber/40 bg-amber-soft text-amber-deep", dot: "bg-amber" },
   approved: { text: "Approved — offer executed", tone: "border-emerald/30 bg-emerald-soft text-emerald-deep", dot: "bg-emerald" },
   rejected: { text: "Rejected", tone: "border-rose/30 bg-rose-soft text-rose-deep", dot: "bg-rose" },
   needs_info: { text: "More information requested", tone: "border-line-strong bg-ink/[0.04] text-ink-soft", dot: "bg-ink-faint" },

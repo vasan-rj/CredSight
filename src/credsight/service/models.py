@@ -32,3 +32,5 @@ class Application:
     decided_by: str | None = None
     # Feature inputs kept for re-score / audit reproducibility.
     feature_seed: dict = field(default_factory=dict)
+    # Path-to-Bankability (D1): None for Strong-band runs; dict (Pathway.model_dump) otherwise.
+    pathway: dict | None = None

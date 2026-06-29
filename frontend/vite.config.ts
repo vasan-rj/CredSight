@@ -8,7 +8,8 @@ export default defineConfig({
     port: 5173,
     // Proxy API calls to the CredSight backend (MCP/decisioning service) in dev.
     proxy: {
-      "/api": { target: "http://localhost:8000", changeOrigin: true },
+      "/api":     { target: "http://localhost:8000", changeOrigin: true },
+      "/samples": { target: "http://localhost:8000", changeOrigin: true },
     },
   },
 });

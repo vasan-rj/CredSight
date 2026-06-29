@@ -18,6 +18,7 @@ from ..data.generators.generate import generate_bundle
 from ..data.ingest import build_canonical
 from ..reconciliation.reconcile import reconcile
 from .model import predict
+from .pathways import compute_path
 
 # Fixed regression archetypes (ref-doc 04). Expected composite ordering: strong > thin >
 # stressed; fraud should be caught by reconciliation, not trusted by score alone.
@@ -48,6 +49,9 @@ def evaluate() -> dict:
     strong_alt, _ = _score_archetype(Archetype.STRONG, seed=12345)
     stability = abs(strong - strong_alt.composite)
 
+    # D1: path-faithfulness checks.
+    path_results = _eval_pathways(results)
+
     return {
         "composites": composites,
         "ranking_ok": strong > stressed,
@@ -56,6 +60,41 @@ def evaluate() -> dict:
         # Filled when a trained, labelled model exists:
         "auc": None, "ks": None, "calibration_error": None,
         "explanation_faithfulness": None,
+        **path_results,
+    }
+
+
+def _score_archetype_with_fv(arch: Archetype, seed: int):
+    bundle = generate_bundle(f"EVAL-{arch.value}", f"Eval {arch.value}", arch, seed)
+    cp = build_canonical(bundle["msme_id"], bundle)
+    fv, flags = reconcile(cp)
+    return fv, predict(fv), flags
+
+
+def _eval_pathways(results: dict) -> dict:
+    """Path-to-Bankability faithfulness checks: no negative-delta step ever surfaces,
+    Strong archetype needs no path, thin-file/stressed return non-empty plans."""
+    issues: list[str] = []
+    path_checks: dict = {}
+    for arch in [Archetype.THIN_FILE, Archetype.STRONG, Archetype.STRESSED]:
+        fv, score, _ = _score_archetype_with_fv(arch, seed=901)
+        path = compute_path(fv, score)
+        neg = [s for s in path.steps if s.marginal_delta <= 0]
+        path_checks[arch.value] = {
+            "composite": score.composite,
+            "reachable": path.reachable,
+            "step_count": len(path.steps),
+            "negative_delta_steps": len(neg),
+            "faithful": len(neg) == 0,
+        }
+        if neg:
+            issues.append(f"{arch.value}: {len(neg)} step(s) with delta ≤ 0")
+        if arch == Archetype.STRONG and score.composite >= 750 and path.steps:
+            issues.append("strong archetype returned steps despite Strong band")
+    return {
+        "path_faithfulness": path_checks,
+        "path_faithfulness_ok": len(issues) == 0,
+        "path_faithfulness_issues": issues,
     }
 
 

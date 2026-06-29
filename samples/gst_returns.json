@@ -1,0 +1,19 @@
+{
+  "gstin": "29AAKCS9398D1ZF",
+  "legal_name": "Priya Kirana Stores",
+  "trade_name": "Priya General Store",
+  "data": [
+    {"ret_prd": "042025", "sup_det": {"txval": 380000}, "arn": "AA29042025123456", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "052025", "sup_det": {"txval": 395000}, "arn": "AA29052025234567", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "062025", "sup_det": {"txval": 410000}, "arn": "AA29062025345678", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "072025", "sup_det": {"txval": 425000}, "arn": "AA29072025456789", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "082025", "sup_det": {"txval": 440000}, "arn": "AA29082025567890", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "092025", "sup_det": {"txval": 455000}, "arn": "AA29092025678901", "filed_on_time": false, "nil_filing": false},
+    {"ret_prd": "102025", "sup_det": {"txval": 470000}, "arn": "AA29102025789012", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "112025", "sup_det": {"txval": 490000}, "arn": "AA29112025890123", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "122025", "sup_det": {"txval": 560000}, "arn": "AA29122025901234", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "012026", "sup_det": {"txval": 485000}, "arn": "AA29012026012345", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "022026", "sup_det": {"txval": 500000}, "arn": "AA29022026123456", "filed_on_time": true,  "nil_filing": false},
+    {"ret_prd": "032026", "sup_det": {"txval": 515000}, "arn": "AA29032026234567", "filed_on_time": true,  "nil_filing": false}
+  ]
+}

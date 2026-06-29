@@ -72,7 +72,7 @@ class Pathway(BaseModel):
     projected_band: str
     reachable: bool
     steps: list[PathStep]
-    disclaimer: str = "Projected by the deterministic model — guidance, not a promise."
+    disclaimer: str = "Steps shown in application order. Each delta reflects improvement after prior steps applied. Guidance, not a promise."
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────

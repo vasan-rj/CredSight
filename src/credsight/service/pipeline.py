@@ -15,9 +15,11 @@ from ..governance.audit import AuditEvent, AuditLog, EventType
 from ..governance.hitl import requires_human
 from ..reconciliation.rules import Flag, Severity
 from ..scoring.model import predict
+from ..scoring.pathways import compute_path
 from ..scoring.policy import recommend
 from ..scoring.schema import FeatureVector
 from .models import Application, Status
+from .outcomes import DecisionOutcome, classify_override, log_outcome
 
 _AUDIT_DIR = Path("audit")
 
@@ -73,10 +75,15 @@ def assess(fv: FeatureVector, *, name: str, sector: str, consent_ref: str,
     else:
         status = Status.APPROVED if rec.eligible else Status.REJECTED
 
+    # D1: compute pathway for sub-Strong applicants (not for confidence-only flags).
+    pathway = None
+    if score.composite < 750:
+        pathway = compute_path(fv, score).model_dump(mode="json")
+
     return Application(
         app_id=fv.app_id, name=name, sector=sector, score=score, recommendation=rec,
         hitl_reasons=reasons, explanation=explanation, status=status,
-        consent_ref=consent_ref, feature_seed=dict(fv.features),
+        consent_ref=consent_ref, feature_seed=dict(fv.features), pathway=pathway,
     )
 
 
@@ -96,4 +103,13 @@ def record_decision(app: Application, decision: str, reason: str,
         log.append(AuditEvent(app.app_id, _now(), EventType.ACTION, "offer_action",
                               {"action": "create_offer", "amount": app.recommendation.amount,
                                "idempotency_key": app.app_id}))
+
+    # D2: log outcome for the Learning Loop.
+    model_rec = "offer" if app.recommendation.eligible else "refer"
+    log_outcome(DecisionOutcome(
+        app_id=app.app_id, ts=_now(), segment=app.sector,
+        model_recommendation=model_rec, human_decision=decision,
+        override=classify_override(model_rec, decision),
+        reason=reason, model_version=app.score.model_version,
+    ))
     return app

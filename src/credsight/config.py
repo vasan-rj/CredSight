@@ -25,8 +25,8 @@ class HITLThresholds:
     """The parameter that shapes how much autonomy the bank's risk appetite allows
     (PRD §17 open question). A case interrupts to a human when any condition trips."""
 
-    amount_threshold: float = float(_env("CREDSIGHT_HITL_AMOUNT_THRESHOLD", "200000"))
-    confidence_floor: float = float(_env("CREDSIGHT_HITL_CONFIDENCE_FLOOR", "0.5"))
+    amount_threshold: float = float(_env("CREDSIGHT_HITL_AMOUNT_THRESHOLD", "600000"))
+    confidence_floor: float = float(_env("CREDSIGHT_HITL_CONFIDENCE_FLOOR", "0.70"))
 
 
 @dataclass(frozen=True)

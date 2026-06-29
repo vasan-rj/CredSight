@@ -72,6 +72,64 @@ export interface CatalogItem {
   sector: string;
 }
 
+// ── Path-to-Bankability (D1) ─────────────────────────────────────────────────
+
+export interface PathStep {
+  feature: string;
+  plain_label: string;
+  marginal_delta: number;  // composite pts gained (always > 0)
+  timeframe_days: number;
+}
+
+export interface Pathway {
+  app_id: string;
+  basis: string;
+  current_composite: number;
+  target_band: string;
+  projected_composite: number;
+  projected_band: string;
+  reachable: boolean;
+  steps: PathStep[];
+  disclaimer: string;
+}
+
+// ── Learning Loop (D2) ───────────────────────────────────────────────────────
+
+export interface LearningSummary {
+  total_decisions: number;
+  overrides_up: number;
+  overrides_down: number;
+  segment_count: number;
+  window_days: number;
+}
+
+export interface ModelVersion {
+  version: string;
+  changed: string;
+  approved_by: string;
+  ts: string;
+  rec_id: string;
+}
+
+export interface RecalRecommendation {
+  id: string;
+  segment: string;
+  pattern: string;
+  suggestion: string;
+  evidence_count: number;
+  status: string;
+}
+
+// Upload ingestion
+export interface UploadPreview {
+  sources_found: string[];
+  missing_sources: string[];
+  months_bank: number;
+  months_gst: number;
+  upi_txn_count: number;
+  turnover_estimate: number | null;
+}
+
 // Unified result from POST /api/orchestrator/run and /resume — carries the full score
 // whether the run paused at the HITL gate or auto-decided.
 export interface RunResult {
@@ -82,5 +140,6 @@ export interface RunResult {
   score: ScoreResult;
   recommendation: Recommendation;
   explanation: string;
+  pathway?: Pathway | null;
   decision: { decision: string; reason: string; underwriter: string } | null;
 }

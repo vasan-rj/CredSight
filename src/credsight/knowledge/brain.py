@@ -44,11 +44,45 @@ def _make_backend():
 _INDEX = _make_backend()
 
 
-def search(query: str, segment: str | None = None, k: int = 3) -> list[PolicyClause]:
-    """Retrieve the policy clauses applicable to this query/segment (no context stuffing).
-    Returns [] when nothing is relevant — callers must treat empty as 'ungrounded' and note
-    it in the audit trail rather than silently proceeding."""
-    return _INDEX.search(query, segment, k=k)
+def search(query: str, segment: str | None = None, k: int = 3,
+           graph_expand: bool = False) -> list[PolicyClause]:
+    """Retrieve policy clauses applicable to this query/segment (no context stuffing).
+
+    graph_expand=True: after top-k retrieval, expand 1 hop through the persisted clause
+    graph so related clauses (e.g. fraud signals linked to turnover corroboration) surface
+    alongside the direct hits. Silently no-ops if no graph has been built yet (run organize
+    first). Returns [] when nothing is relevant — callers must treat empty as 'ungrounded'.
+    """
+    results = _INDEX.search(query, segment, k=k)
+    if not graph_expand or not results:
+        return results
+
+    from .graph import expand_with_neighbors, load_graph
+    from .models import KnowledgeGraph
+
+    raw = load_graph()
+    if raw is None:
+        return results
+
+    # Rebuild a lightweight graph from the persisted JSON (nodes + edges only — no bags).
+    from .models import ClauseLink
+    nodes = {n["ref"]: PolicyClause(ref=n["ref"], title=n["title"], text="", source=n["source"])
+             for n in raw.get("nodes", [])}
+    edges = [ClauseLink(source_ref=e["source"], target_ref=e["target"],
+                        weight=e["weight"], reason=e["reason"])
+             for e in raw.get("edges", [])]
+    graph = KnowledgeGraph(nodes=nodes, edges=edges)
+
+    refs = [c.ref for c in results]
+    expanded = expand_with_neighbors(refs, graph, hops=1)
+    extra_refs = [r for r in expanded if r not in set(refs)]
+    if not extra_refs:
+        return results
+
+    # Fetch full text for neighbor clauses and append (lower rank — they're bonus context).
+    all_clauses = {c.ref: c for c in _INDEX.all_clauses()}
+    neighbors = [all_clauses[r] for r in extra_refs if r in all_clauses]
+    return results + neighbors[:max(1, k // 2)]
 
 
 def capture(note: str, tags: list[str] | None = None) -> bool:
@@ -68,6 +102,7 @@ def capture(note: str, tags: list[str] | None = None) -> bool:
 
 
 def organize() -> dict:
-    """Nightly 'dream' cycle that keeps the graph self-wiring (ref-doc 05). Stub: reports
-    the corpus size. A real cycle would dedupe/merge captured learnings and link clauses."""
-    return {"clauses": len(_INDEX.all_clauses())}
+    """Nightly 'dream' cycle — build the clause graph, detect communities and dedup
+    candidates, persist graph.json. Returns a summary dict for the API + audit trail."""
+    from .organize import run_organize_cycle
+    return run_organize_cycle(_INDEX)

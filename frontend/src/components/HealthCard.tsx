@@ -2,7 +2,7 @@
 // plain-language strengths/risks from the model's SHAP drivers, and an honest
 // confidence indicator. Framed as a financial credential, not a dashboard widget.
 
-import type { Dimension, ScoreResult } from "../types";
+import type { Dimension, Pathway, ScoreResult } from "../types";
 import { Card, Chip, Gauge, Ring, SectionLabel, band, prettyFeature } from "./ui";
 
 const DIM_LABELS: Record<Dimension, string> = {
@@ -32,7 +32,36 @@ function Confidence({ confidence }: { confidence: number }) {
   );
 }
 
-export function HealthCard({ score, name }: { score: ScoreResult; name: string }) {
+export function HealthCardSkeleton() {
+  return (
+    <Card className="overflow-hidden animate-pulse">
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line px-7 py-6">
+        <div className="space-y-2">
+          <div className="h-3 w-32 rounded bg-line" />
+          <div className="h-8 w-48 rounded bg-line" />
+          <div className="h-3 w-24 rounded bg-line" />
+        </div>
+        <div className="h-7 w-16 rounded-full bg-line" />
+      </div>
+      <div className="grid gap-8 px-7 py-7 md:grid-cols-[260px_1fr] md:gap-10">
+        <div className="flex flex-col items-center gap-5">
+          <div className="h-[140px] w-[140px] rounded-full bg-line" />
+          <div className="h-16 w-full rounded-xl bg-line" />
+        </div>
+        <div className="space-y-4 pt-1">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="space-y-1.5">
+              <div className="h-3 w-28 rounded bg-line" />
+              <div className="h-2 w-full rounded-full bg-line" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+export function HealthCard({ score, name, pathway }: { score: ScoreResult; name: string; pathway?: Pathway | null }) {
   const strengths = score.shap.filter((d) => d.direction === "positive").slice(0, 3);
   const risks = score.shap.filter((d) => d.direction === "negative").slice(0, 3);
   const verdict = band(score.composite);
@@ -48,9 +77,19 @@ export function HealthCard({ score, name }: { score: ScoreResult; name: string }
             model {score.model_version} · {score.app_id}
           </p>
         </div>
-        <Chip tone={verdict.label === "Refer" ? "rose" : verdict.label === "Fair" ? "amber" : "emerald"}>
-          {verdict.label}
-        </Chip>
+        <div className="flex flex-col items-end gap-2">
+          <Chip tone={verdict.label === "Refer" ? "rose" : verdict.label === "Fair" ? "amber" : "emerald"}>
+            {verdict.label}
+          </Chip>
+          {pathway && (
+            <a
+              href="#path-to-bankability"
+              className="rounded-full border border-amber/40 bg-amber-soft px-3 py-1 font-mono text-[11px] font-medium text-amber-deep transition hover:bg-amber/20"
+            >
+              Raise your score ↓
+            </a>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-8 px-7 py-7 md:grid-cols-[260px_1fr] md:gap-10">

@@ -82,3 +82,6 @@ target-version = "py311"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+    "sandbox: tests that call IDBI sandbox connectors (run with -m sandbox)",
+]

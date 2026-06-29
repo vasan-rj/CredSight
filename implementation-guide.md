@@ -1,5 +1,122 @@
 # Implementation Guide — Path to Bankability + Learning Loop
 
+<!-- ────────────────────────────────────────────────────────────────────
+  DESIGN DECISIONS (added by /plan-design-review 2026-06-17)
+  These bind implementation. Do not revert without updating this section.
+──────────────────────────────────────────────────────────────────────── -->
+
+## Design Decisions
+
+### Information Architecture
+
+**D1 — HITL Tab Alert:** When `run.status === "pending_human"` fires:
+- Put an amber badge (number `!`) on the "Underwriter Console" tab in the nav
+- Auto-switch to that tab after 400ms delay
+- Amber badge component reuses existing `--color-amber` token + `pulse-dot` animation
+- Files: `frontend/src/App.tsx` (tab nav + auto-switch logic)
+
+**D2 — Tab order (reordered to match demo arc):**
+New order: `Applicants | Health Card | Underwriter Console | Audit Trail | Learning Loop | Knowledge Graph`
+- `catalog` moves to first position (entry point)
+- `gbrain` renamed to `knowledge` / label "Knowledge Graph"
+- Files: `frontend/src/App.tsx` (TABS array + Tab type)
+
+**D3 — Tab label:** "GBrain" → "Knowledge Graph". Slug: `knowledge`. Files: `App.tsx`, `GBrain.tsx`.
+
+**D4 — PathToBankability discovery anchor:** When `run.pathway` exists, add to the bottom of `HealthCard.tsx`:
+```tsx
+{pathway && (
+  <a href="#path-to-bankability" className="flex items-center gap-1.5 border-t border-line px-7 py-3 font-mono text-[12px] text-amber-deep hover:text-amber transition">
+    <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-amber" />
+    Raise your score — {pathway.target_band} reachable ↓
+  </a>
+)}
+```
+`PathToBankability` section gets `id="path-to-bankability"`.
+
+### Interaction States
+
+**D5 — Health Card loading/error states:**
+- While `busy`: render `<HealthCardSkeleton />` — greyed-out card with shimmer animation on the ring and gauges (amber `pulse-dot` in header)
+- On agent error: replace card with amber banner: "Assessment failed — try again." + retry button
+- Files: `App.tsx` (pass `busy` + `error` to card area), new `HealthCardSkeleton` in `HealthCard.tsx`
+
+**D6 — GBrain organize progress stream:**
+- While `POST /api/knowledge/organize` is in-flight, show a live log panel below the button:
+  ```
+  ● Re-chunking changed docs…
+  ● Building typed edges (regex pass)…
+  ● Detecting communities…
+  ✓ Done: 3 nodes added, 2 merged, 4 edges promoted
+  ```
+- Log lines arrive from SSE stream or poll `/api/knowledge/organize/status` every 500ms
+- On completion, the OrganizeReport appears as a summary chip row above the graph
+- Files: `GBrain.tsx`
+
+**D7 — LearningLoop 'building evidence' partial state:**
+When `summary.total_decisions > 0` but `recs.length === 0`, replace the empty-state with:
+```tsx
+<div className="rounded-xl border border-line bg-paper px-6 py-5">
+  <p className="font-mono text-[13px] text-ink-soft">
+    Collecting patterns: {summary.total_decisions} decisions recorded across {summary.segment_count} segments.
+    Threshold not yet reached — patterns surface at 8+ signals in a segment.
+  </p>
+</div>
+```
+Files: `LearningLoop.tsx`, `LearningSummary` type (add `segment_count`).
+
+### User Journey & Copy
+
+**D8 — HITL pause banner copy:**
+Change from: `"Awaiting human approval"`
+Change to: `"Human decision required — agent paused, as designed"`
+Add sub-line: `"This loan exceeds the auto-approval threshold. Your decision is captured immutably."`
+Files: `UnderwriterConsole.tsx` (STATUS map, `pending_human` entry)
+
+**D9 — LearningLoop value prop subtitle:**
+Add below "Learning Loop" heading:
+> "Every override you make becomes a calibration signal. When patterns emerge, the risk team reviews them — the model never updates itself."
+Files: `LearningLoop.tsx`
+
+### Visual / Design System
+
+**D10 — Landing Solution section: convert to numbered flow:**
+Replace the 3-column card grid with a horizontal step flow: `01 → 02 → 03` with arrow connectors between steps. On mobile, stacks vertically. The connecting arrows make the *process* metaphor explicit.
+Files: `Landing.tsx` (SOLUTION section)
+
+**D11 — GBrain graph palette (Ledger-aligned):**
+- Policy nodes: `bg-paper` fill, `stroke: var(--color-ink)`, 2px border
+- Learned nodes: `bg-azure-soft` fill, `stroke: var(--color-azure)`, 2px border
+- Community coloring: cycle through `[emerald, amber, rose, azure]` Ledger tokens — max 4 communities visible; overflow → ink-faint
+- Edge type → stroke style:
+  - `refines`: emerald, dashed (2 4)
+  - `contradicts`: rose, solid 2px
+  - `co_cited`: amber, solid 1px
+  - `similar_to`, `same_segment`: ink-faint, solid 0.5px
+  - `supersedes`, `exception_to`: ink, dashed (4 2)
+- Files: `GraphView.tsx`
+
+**D12 — Create `DESIGN.md`** in repo root. Content: token semantics, font stack, spacing principles, component vocabulary, and the "amber = HITL" semantic rule.
+
+**D15 — PathToBankability panel title:** Change from "Path to Bankability" → **"Raise your score"**
+Files: `PathToBankability.tsx` (h2 text)
+
+### Responsive & Accessibility
+
+**D13 — Mobile tab nav:** Add `overflow-x-auto scrollbar-hide` to the tab nav container. Add a right-side fade gradient (`after:` pseudo-element) as a scroll hint on mobile. Minimum touch target: 44px height on each tab button (add `py-3 min-h-[44px]`).
+Files: `App.tsx` (tab nav div)
+
+**D14 — Contrast audit:** All `text-[11px] text-ink-faint` used as informational (non-decorative) labels → replace with `text-ink-soft`. Reserve `ink-faint` for purely decorative separators/captions with no informational content. Add this rule as a comment in `index.css`.
+
+### Missing Features
+
+**D16 — LearningLoop model version history:**
+Add a "Model versions" section below rec cards. Endpoint: `GET /api/learning/model-versions`.
+Shape: `{ version: string; changed: string; approved_by: string; ts: string }[]`
+Render as a compact timeline reusing `AuditTrail`'s event-list pattern.
+When a rec is approved, the resulting version bump appears here immediately.
+Files: `LearningLoop.tsx`, `api.ts`, `types.ts`, `api/app.py`
+
 Two differentiators that turn CredSight from a single-pass workflow into an **agentic OS** that
 closes the loop:
 
@@ -477,3 +594,173 @@ cd frontend && npm run lint && npm run dev                    # :5173
 #           approve/override in Console → Learning view shows the captured pattern →
 #           Run dream cycle → Knowledge Graph self-wires (new clause linked to the policy it refines).
 ```
+
+---
+
+## Implementation Tasks
+Synthesized from /plan-design-review + /plan-eng-review findings. Each task derives from a specific finding. Run with Claude Code or Codex; checkbox as you ship.
+
+- [ ] **T1 (P1, human: ~1h / CC: ~8min)** — App.tsx — HITL tab alert: amber badge + auto-switch to Underwriter Console on `pending_human`
+  - Surfaced by: Pass 1 D1 — HITL pause has no visual attention signal
+  - Files: `frontend/src/App.tsx`
+  - Verify: run assessment for a sub-band MSME → check that tab auto-switches to Underwriter Console within 400ms
+
+- [ ] **T2 (P1, human: ~15min / CC: ~5min)** — App.tsx — Reorder TABS: `Applicants | Health Card | Underwriter Console | Audit Trail | Learning Loop | Knowledge Graph`
+  - Surfaced by: Pass 1 D2 — tab ordering doesn't match demo arc
+  - Files: `frontend/src/App.tsx`
+  - Verify: tabs read left-to-right in demo order
+
+- [ ] **T3 (P1, human: ~5min / CC: ~2min)** — App.tsx/GBrain.tsx — Rename 'GBrain' tab → 'Knowledge Graph'
+  - Surfaced by: Pass 1 D3 — GBrain is internal jargon
+  - Files: `frontend/src/App.tsx`, `frontend/src/components/GBrain.tsx`
+  - Verify: tab label reads "Knowledge Graph"
+
+- [ ] **T4 (P1, human: ~30min / CC: ~5min)** — HealthCard.tsx — Add amber "Raise your score ↓" anchor when `pathway` exists
+  - Surfaced by: Pass 1 D4 — PathToBankability below fold with no scroll signal
+  - Files: `frontend/src/components/HealthCard.tsx`, `frontend/src/components/PathToBankability.tsx`
+  - Verify: on thin-file MSME, amber teaser appears at bottom of HealthCard; clicking scrolls to PathToBankability
+
+- [ ] **T5 (P1, human: ~2h / CC: ~15min)** — HealthCard.tsx/App.tsx — `HealthCardSkeleton` shimmer while busy; error banner on agent failure
+  - Surfaced by: Pass 2 D5 — stale data visible while agent runs; no error state
+  - Files: `frontend/src/components/HealthCard.tsx`, `frontend/src/App.tsx`
+  - Verify: switch applicants → skeleton shows during run; break backend → error banner appears
+
+- [ ] **T6 (P1, human: ~2h / CC: ~20min)** — GBrain.tsx/api/app.py — Organize progress log stream during dream cycle
+  - Surfaced by: Pass 2 D6 — organize() is 5-10s with no feedback
+  - Files: `frontend/src/components/GBrain.tsx`, `src/credsight/api/app.py`
+  - Verify: click "Run dream cycle" → live log lines appear one by one; OrganizeReport summary shown on completion
+
+- [ ] **T8 (P1, human: ~5min / CC: ~2min)** — UnderwriterConsole.tsx — HITL banner copy → "Human decision required — agent paused, as designed"
+  - Surfaced by: Pass 3 D8 — "Awaiting human approval" reads as system-stuck not deliberate
+  - Files: `frontend/src/components/UnderwriterConsole.tsx`
+  - Verify: `pending_human` banner shows new copy + sub-line about immutable capture
+
+- [ ] **T11 (P1, human: ~2h / CC: ~20min)** — GraphView.tsx — Ledger-aligned graph palette
+  - Surfaced by: Pass 5 D11 — graph colors unspecified; will clash with Ledger system
+  - Files: `frontend/src/components/GraphView.tsx`
+  - Verify: policy nodes = paper/ink; learned = azure-soft/azure; communities cycle emerald/amber/rose/azure; edge types match spec
+
+- [ ] **T12 (P1, human: ~15min / CC: ~5min)** — App.tsx — Mobile tab nav: overflow-x-auto + fade gradient + 44px touch targets
+  - Surfaced by: Pass 6 D13 — 6 tabs overflow on 375px
+  - Files: `frontend/src/App.tsx`, `frontend/src/index.css`
+  - Verify: resize to 375px; tabs scroll horizontally; fade gradient visible on right edge
+
+- [ ] **T13 (P1, human: ~2min / CC: ~1min)** — PathToBankability.tsx — Rename panel title → "Raise your score"
+  - Surfaced by: Pass 7 D15 — plan specifies this copy; component contradicts it
+  - Files: `frontend/src/components/PathToBankability.tsx`
+  - Verify: panel header reads "Raise your score"
+
+- [ ] **T7 (P2, human: ~1h / CC: ~10min)** — LearningLoop.tsx — "Collecting patterns" partial state when `total_decisions > 0` but no recs
+  - Surfaced by: Pass 2 D7 — threshold partial state unspecified
+  - Files: `frontend/src/components/LearningLoop.tsx`, `frontend/src/types.ts`
+  - Verify: seed 5 decisions without threshold; "Collecting patterns: 5 decisions" shows
+
+- [ ] **T9 (P2, human: ~5min / CC: ~2min)** — LearningLoop.tsx — Add value-prop subtitle
+  - Surfaced by: Pass 3 D9 — judge sees numbers without context
+  - Files: `frontend/src/components/LearningLoop.tsx`
+  - Verify: subtitle text present below "Learning Loop" heading
+
+- [ ] **T10 (P2, human: ~1h / CC: ~15min)** — Landing.tsx — Solution section: 3-column grid → numbered step flow 01→02→03
+  - Surfaced by: Pass 4 D10 — 3-column grid reads as AI slop
+  - Files: `frontend/src/components/Landing.tsx`
+  - Verify: solution section shows connecting arrows between steps; no equal-height card grid
+
+- [ ] **T14 (P2, human: ~2h / CC: ~20min)** — LearningLoop.tsx — Model version history section (AuditTrail pattern)
+  - Surfaced by: Pass 7 D16 — plan specifies version history; component omits it
+  - Files: `frontend/src/components/LearningLoop.tsx`, `frontend/src/types.ts`, `frontend/src/api.ts`, `src/credsight/api/app.py`
+  - Verify: approve a rec → version bump appears in version history timeline
+
+### Eng Review Tasks (added by /plan-eng-review 2026-06-18)
+
+- [ ] **T15 (P1, human: ~5min / CC: ~3min)** — governance/learning.py + api/app.py — Standardize `PATTERN_THRESHOLD = 8` as named constant
+  - Surfaced by: A1 — API uses 3, code default 5, plan copy says "8+"; demo narrative breaks
+  - Files: `src/credsight/governance/learning.py`, `src/credsight/api/app.py`
+  - Verify: `grep -n "threshold" src/credsight/governance/learning.py src/credsight/api/app.py` shows only `PATTERN_THRESHOLD`
+
+- [ ] **T16 (P1, human: ~5min / CC: ~3min)** — api/app.py — Add `segment_count` to `/api/learning/summary` response
+  - Surfaced by: CQ1 — D7 partial-state copy references `{summary.segment_count}`; field absent → renders `undefined`
+  - Files: `src/credsight/api/app.py`
+  - Verify: `GET /api/learning/summary` returns `segment_count` matching `len({o.segment for o in outcomes})`
+
+- [ ] **T17 (P1, human: ~30min / CC: ~20min)** — api/app.py — `var/model-versions.jsonl` + `GET /api/learning/model-versions`
+  - Surfaced by: CQ2 — `approve_recommendation` writes audit event only; D16 version history has no queryable store
+  - Files: `src/credsight/api/app.py`
+  - Verify: `POST .../approve` → `var/model-versions.jsonl` gains one record; `GET /api/learning/model-versions` returns it
+
+- [ ] **T18 (P1, human: ~5min / CC: ~3min)** — governance/learning.py — Add timestamp suffix to `rec_id` for uniqueness across 30-day cycles
+  - Surfaced by: Cross-model tension #6 — `rec-retail-up` is non-unique across windows; D16 approvals indistinguishable
+  - Files: `src/credsight/governance/learning.py`
+  - Verify: two scan() calls a month apart produce different `rec_id` values for same segment/direction
+
+- [ ] **T19 (P1, human: ~10min / CC: ~5min)** — governance/learning.py — Guard `brain.capture()` with seen-rec-id set
+  - Surfaced by: P1 — every API poll calls capture() again; captured-learnings.md grows unboundedly; graph fills with duplicate nodes
+  - Files: `src/credsight/governance/learning.py`
+  - Verify: call `scan()` 5 times with same corpus → `captured-learnings.md` has exactly one entry per unique rec_id
+
+- [ ] **T20 (P1, human: ~5min / CC: ~2min)** — governance/hitl.py — Raise `amount_threshold` to `600_000` for demo
+  - Surfaced by: Cross-model tension #1 — strong archetype offer=500k > threshold=200k → always hits HITL; "auto-approve" demo beat broken
+  - Files: `src/credsight/governance/hitl.py`
+  - Verify: run strong archetype → orchestrator returns `status="approved"` without HITL interrupt
+
+- [ ] **T21 (P1, human: ~5min / CC: ~3min)** — frontend/src/api.ts — Wire Audit Trail to `/api/orchestrator/{app_id}/audit`
+  - Surfaced by: Cross-model tension #2 — agents/graph.py writes to `var/audit/`; UI calls legacy `/api/applications/{app_id}/audit` → empty trail
+  - Files: `frontend/src/api.ts`
+  - Verify: run an orchestrator assessment → Audit Trail tab shows ingest/score/HITL events
+
+- [ ] **T22 (P2, human: ~2min / CC: ~1min)** — scoring/pathways.py — Update `Pathway.disclaimer` to note sequential delta computation
+  - Surfaced by: Cross-model tension #4 — marginal deltas are sequential; UI renders as independent; misleads MSME
+  - Files: `src/credsight/scoring/pathways.py`
+  - Verify: disclaimer reads "Steps shown in application order. Each delta reflects improvement after prior steps applied."
+
+- [ ] **T23 (P1, human: ~30min / CC: ~10min)** — tests/test_pathways.py — Critical pathway tests
+  - Surfaced by: Test Review — zero tests for compute_path(); no-negative-delta is guardrail check in plan
+  - Files: `tests/test_pathways.py` (new)
+  - Verify: `pytest tests/test_pathways.py -v` passes; covers thin-file has steps, strong→no path, no negative-delta step
+
+- [ ] **T24 (P1, human: ~30min / CC: ~10min)** — tests/test_d2.py — Critical D2 tests
+  - Surfaced by: Test Review — zero tests for classify_override, scan(), PATTERN_THRESHOLD; threshold contradiction breaks demo narrative
+  - Files: `tests/test_d2.py` (new)
+  - Verify: `pytest tests/test_d2.py -v` passes; covers classify_override all 6 pairs, scan below/above threshold, PATTERN_THRESHOLD=8
+
+---
+
+## NOT in scope (design decisions deferred)
+
+- Vernacular/multi-language explanations — deferred per CLAUDE.md MVP cut line
+- Monitoring agent UI — stretch feature only
+- Full portfolio analytics — stretch feature only
+- Graph keyboard accessibility — tracked in TODOS.md (post-hackathon)
+- Advanced graph filtering/search UI — deferred
+- Gauge color threshold alignment with band floors — aesthetic-only, no functional impact
+- Typed edges (refines/contradicts/co_cited per plan §3.3) — Jaccard-only with 2 mapped Ledger colors accepted (eng review A3)
+- SSE endpoint for organize progress — simulated client-side log accepted (eng review A2)
+- Audit log merging (audit/ + var/audit/) — demo wires to var/audit/ only (eng review tension #2)
+
+## What already exists (reuse these, do not rebuild)
+
+- `Ring`, `Chip`, `Gauge`, `Card`, `SectionLabel`, `Reveal` — `frontend/src/components/ui.tsx`
+- Ledger token system — `frontend/src/index.css` (emerald/amber/rose/azure semantics)
+- `AuditTrail` event-list pattern — reuse for LearningLoop model version history (T14)
+- `StatBox` pattern — already in `LearningLoop.tsx`; extract to `ui.tsx` if needed elsewhere
+- `pulse-dot` + `reveal` animations — reuse for skeleton shimmer (T5)
+- `Chip tone="amber"` — use for badge on Underwriter Console tab (T1)
+- **D1 backend: fully done** — `agents/graph.py:score_node` computes pathway and attaches to state; `agents/run.py:_result()` surfaces it in RunResult
+- **D2 backend: fully done** — `agents/graph.py:gate_node` logs DecisionOutcome; all `/api/learning/*` endpoints exist
+- **GBrain graph: fully done** — `knowledge/graph.py` Jaccard graph + communities + dedup; `knowledge/organize.py` run_organize_cycle(); `/api/knowledge/organize` + `/api/knowledge/graph` endpoints exist
+- `governance/learning.py:scan()` already calls `brain.capture()` — just needs the rec-id guard (T19)
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 0 | — | — |
+| Outside Voice | `/plan-eng-review` | Independent 2nd opinion | 1 | issues_found | 10 findings from Claude subagent, all resolved |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 2 | CLEAR (PLAN) | 10 issues, 0 critical gaps — all folded into T15-T24 |
+| Design Review | `/plan-design-review` | UI/UX gaps | 1 | CLEAR (FULL) | score: 6/10 → 9/10, 16 decisions |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+**CROSS-MODEL:** Outside voice and eng review agree on all 4 critical findings (threshold contradiction, strong-archetype HITL, audit path split, two-store sync). No disagreement.
+
+**VERDICT:** ENG + DESIGN CLEARED — ready to implement. Tasks T1–T24 are the complete build list.
+
+NO UNRESOLVED DECISIONS

@@ -1,0 +1,7 @@
+period,turnover,filed_on_time,nil_filing
+2025-10,185000,true,false
+2025-11,192000,true,false
+2025-12,220000,true,false
+2026-01,198000,false,false
+2026-02,205000,true,false
+2026-03,210000,true,false

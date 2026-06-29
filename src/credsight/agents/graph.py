@@ -59,6 +59,7 @@ class State(TypedDict, total=False):
     hitl_reasons: list[str]
     decision: dict | None
     status: str
+    pathway: dict | None   # Pathway.model_dump() for sub-Strong runs (D1)
 
 
 def _audit(app_id: str) -> AuditLog:
@@ -69,6 +70,17 @@ def _audit(app_id: str) -> AuditLog:
 
 def ingest_node(state: State) -> dict:
     app_id = state["app_id"]
+    # Upload path: canonical was pre-built by the upload parser and injected into state.
+    if state.get("canonical"):
+        cp = CanonicalProfile(**state["canonical"])
+        _audit(app_id).append(AuditEvent(
+            app_id, _now(), EventType.DATA_PULL, "upload_ingestion",
+            {"consented_scope": [s.value for s in cp.consent.scope],
+             "missing": [s.value for s in cp.missing_sources],
+             "source": "upload"},
+            consent_ref=cp.consent.consent_id,
+        ))
+        return {"consent_ref": cp.consent.consent_id, "sector": cp.profile.sector or "—"}
     cp = tools.tool_ingest(app_id, state["archetype"], state["seed"], state.get("name", "MSME"))
     _write(f"canonical/{app_id}.json", cp.model_dump_json(indent=2))
     _audit(app_id).append(AuditEvent(
@@ -117,8 +129,14 @@ def score_node(state: State) -> dict:
                           {"eligible": rec.eligible, "product": rec.product,
                            "amount": rec.amount,
                            "policy_clause_refs": rec_dict["policy_clause_refs"]}))
+    # D1: compute Path-to-Bankability for sub-Strong applicants.
+    pathway = None
+    if score.composite < 750:
+        from ..scoring.pathways import compute_path
+        pathway = compute_path(fv, score).model_dump(mode="json")
+
     return {"score": score.model_dump(mode="json"), "recommendation": rec_dict,
-            "explanation": _explain(score)}
+            "explanation": _explain(score), "pathway": pathway}
 
 
 def gate_node(state: State) -> dict:
@@ -147,6 +165,7 @@ def gate_node(state: State) -> dict:
         "recommendation": state["recommendation"],
         "score": state["score"],
         "explanation": state["explanation"],
+        "pathway": state.get("pathway"),
     })
 
     underwriter = decision.get("underwriter", "underwriter:demo")
@@ -155,6 +174,16 @@ def gate_node(state: State) -> dict:
                                       "reason": decision.get("reason", "")}))
     status = {"approve": "approved", "override": "rejected",
               "request_info": "needs_info"}.get(decision.get("decision"), "pending_human")
+
+    # D2: log outcome for the Learning Loop.
+    from ..service.outcomes import DecisionOutcome, classify_override, log_outcome
+    model_rec = "offer" if state["recommendation"].get("eligible", False) else "refer"
+    log_outcome(DecisionOutcome(
+        app_id=app_id, ts=_now(), segment=state.get("sector", "unknown"),
+        model_recommendation=model_rec, human_decision=decision.get("decision", ""),
+        override=classify_override(model_rec, decision.get("decision", "")),
+        reason=decision.get("reason", ""), model_version=state["score"].get("model_version", ""),
+    ))
     return {"hitl_reasons": reasons, "status": status, "decision": decision}
 
 

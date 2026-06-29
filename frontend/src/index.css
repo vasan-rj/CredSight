@@ -126,6 +126,15 @@
 }
 
 @layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   .reveal {
     opacity: 0;
     animation: reveal-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;

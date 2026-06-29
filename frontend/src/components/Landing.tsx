@@ -180,12 +180,19 @@ export function Landing({ onEnter }: { onEnter: () => void }) {
             out — without the week of manual work, and without losing the human judgement a loan deserves.
           </p>
         </Reveal>
-        <div className="mt-12 grid gap-px overflow-hidden rounded-3xl border border-line bg-line md:grid-cols-3">
+        <div className="mt-12 flex flex-col gap-0 md:flex-row">
           {SOLUTION.map((s, i) => (
-            <Reveal key={s.n} delay={i * 90} className="flex h-full flex-col bg-paper p-7">
-              <span className="font-mono text-[13px] font-semibold text-emerald">{s.n}</span>
-              <h3 className="mt-3 font-display text-[21px] font-medium leading-snug text-ink">{s.t}</h3>
-              <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">{s.d}</p>
+            <Reveal key={s.n} delay={i * 90} className="flex flex-1 items-stretch">
+              <div className="flex flex-1 flex-col rounded-3xl border border-line bg-paper p-7">
+                <span className="font-mono text-[13px] font-semibold text-emerald">{s.n}</span>
+                <h3 className="mt-3 font-display text-[21px] font-medium leading-snug text-ink">{s.t}</h3>
+                <p className="mt-3 text-[14px] leading-relaxed text-ink-soft">{s.d}</p>
+              </div>
+              {i < SOLUTION.length - 1 && (
+                <div className="hidden items-center px-3 text-ink-faint md:flex">
+                  <span className="font-mono text-[18px]">→</span>
+                </div>
+              )}
             </Reveal>
           ))}
         </div>
