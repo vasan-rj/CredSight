@@ -33,12 +33,14 @@ def _result(app_id: str, out: dict) -> dict:
             "reasons": p["reasons"], "score": p["score"],
             "recommendation": p["recommendation"], "explanation": p["explanation"],
             "pathway": p.get("pathway"), "decision": None,
+            "needs": out.get("needs"), "product_matches": out.get("product_matches"),
         }
     return {
         "app_id": app_id, "status": out.get("status"), "paused": False,
         "reasons": out.get("hitl_reasons", []), "score": out["score"],
         "recommendation": out["recommendation"], "explanation": out.get("explanation", ""),
         "pathway": out.get("pathway"), "decision": out.get("decision"),
+        "needs": out.get("needs"), "product_matches": out.get("product_matches"),
     }
 
 

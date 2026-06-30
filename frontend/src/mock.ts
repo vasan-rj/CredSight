@@ -1,6 +1,6 @@
 // Mock data so the UI runs standalone (USE_MOCK=true in api.ts) before the backend is up.
 
-import type { AuditEvent, CatalogItem, LearningSummary, ModelVersion, RecalRecommendation, RunResult } from "./types";
+import type { AuditEvent, CatalogItem, LearningSummary, ModelVersion, NeedsAssessment, ProductMatch, RecalRecommendation, RunResult } from "./types";
 
 export const CATALOG: CatalogItem[] = [
   { app_id: "APP-LAKSHMI-001", name: "Lakshmi Stores",       archetype: "thin_file", seed: 101, sector: "Kirana / retail" },
@@ -74,6 +74,67 @@ export const MOCK_RUN: RunResult = {
   decision: null,
 };
 
+export const MOCK_NEEDS_LAKSHMI: NeedsAssessment = {
+  app_id: "APP-LAKSHMI-001",
+  need_type: "seasonal",
+  headline: "Needs ₹1.2L seasonal credit for peak-season inventory",
+  estimated_amount: 120000,
+  urgency: "medium_term",
+  evidence: [
+    "GST turnover ₹4.8L/yr",
+    "3.1yr business vintage",
+    "New-to-credit (thin file)",
+    "Seasonal revenue pattern",
+  ],
+  gst_only: false,
+  consent_to_unlock: [],
+};
+
+export const MOCK_PRODUCT_MATCHES_LAKSHMI: ProductMatch[] = [
+  {
+    product_id: "seasonal_credit",
+    name: "Seasonal Credit Line",
+    tagline: "Stock up before the season, pay back after",
+    description: "Short-duration credit line designed for seasonal inventory cycles.",
+    amount_estimate: 120000,
+    tenor_range: [3, 6],
+    indicative_rate: 22.0,
+    key_features: ["90–180 day tenor", "GST + UPI entry", "No collateral"],
+    fit_reason: "Designed for seasonal inventory cycles",
+    data_needed: ["gst", "upi"],
+    score_required: false,
+    score_band_ok: true,
+  },
+  {
+    product_id: "ntc_starter",
+    name: "NTC Starter Credit",
+    tagline: "Your first step into formal credit",
+    description: "Entry credit facility for New-to-Credit micro-enterprises.",
+    amount_estimate: 120000,
+    tenor_range: [6, 18],
+    indicative_rate: 24.0,
+    key_features: ["No credit history needed", "GST + UPI based", "Builds your credit profile"],
+    fit_reason: "Built for first-time borrowers — no credit history needed",
+    data_needed: ["gst", "upi"],
+    score_required: false,
+    score_band_ok: true,
+  },
+  {
+    product_id: "wc_unsecured",
+    name: "MSME Working Capital Limit",
+    tagline: "Keep your business running without interruption",
+    description: "Revolving unsecured credit line for day-to-day working capital needs.",
+    amount_estimate: 120000,
+    tenor_range: [12, 36],
+    indicative_rate: 18.0,
+    key_features: ["No collateral required", "Revolving facility", "Disburse in 48h"],
+    fit_reason: "Available once score reaches band 600 — raise your score first",
+    data_needed: ["gst", "bank_aa"],
+    score_required: true,
+    score_band_ok: false,
+  },
+];
+
 // Thin-file hero case (Lakshmi) — composite 600, 2 actionable steps, reachable → Strong.
 // Values from smoke test: thin_file seed=104 → composite=600, reachable=True.
 export const MOCK_RUN_LAKSHMI: RunResult = {
@@ -130,6 +191,8 @@ export const MOCK_RUN_LAKSHMI: RunResult = {
     ],
     disclaimer: "Steps shown in application order. Each delta reflects improvement after prior steps applied. Guidance, not a promise.",
   },
+  needs: MOCK_NEEDS_LAKSHMI,
+  product_matches: MOCK_PRODUCT_MATCHES_LAKSHMI,
   decision: null,
 };
 

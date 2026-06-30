@@ -120,6 +120,34 @@ export interface RecalRecommendation {
   status: string;
 }
 
+// ── Needs assessment + product catalogue (D5) ───────────────────────────────
+
+export interface NeedsAssessment {
+  app_id: string;
+  need_type: "working_capital" | "seasonal" | "capex" | "trade_finance";
+  headline: string;
+  estimated_amount: number;
+  urgency: "immediate" | "medium_term" | "planning";
+  evidence: string[];
+  gst_only: boolean;
+  consent_to_unlock: string[];
+}
+
+export interface ProductMatch {
+  product_id: string;
+  name: string;
+  tagline: string;
+  description: string;
+  amount_estimate: number;
+  tenor_range: [number, number];
+  indicative_rate: number;
+  key_features: string[];
+  fit_reason: string;
+  data_needed: string[];
+  score_required: boolean;
+  score_band_ok: boolean;
+}
+
 // Upload ingestion
 export interface UploadPreview {
   sources_found: string[];
@@ -141,5 +169,7 @@ export interface RunResult {
   recommendation: Recommendation;
   explanation: string;
   pathway?: Pathway | null;
+  needs?: NeedsAssessment | null;
+  product_matches?: ProductMatch[] | null;
   decision: { decision: string; reason: string; underwriter: string } | null;
 }

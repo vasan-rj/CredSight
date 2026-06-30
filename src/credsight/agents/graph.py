@@ -59,7 +59,9 @@ class State(TypedDict, total=False):
     hitl_reasons: list[str]
     decision: dict | None
     status: str
-    pathway: dict | None   # Pathway.model_dump() for sub-Strong runs (D1)
+    pathway: dict | None           # Pathway.model_dump() for sub-Strong runs (D1)
+    needs: dict | None             # NeedsAssessment.model_dump() — from ingest (D5)
+    product_matches: list[dict]    # ProductMatch.model_dump() list — updated after score
 
 
 def _audit(app_id: str) -> AuditLog:
@@ -80,7 +82,16 @@ def ingest_node(state: State) -> dict:
              "source": "upload"},
             consent_ref=cp.consent.consent_id,
         ))
-        return {"consent_ref": cp.consent.consent_id, "sector": cp.profile.sector or "—"}
+        from ..needs.classifier import classify_needs
+        from ..needs.products import match_products
+        needs = classify_needs(cp)
+        pm = match_products(needs, score=None)
+        return {
+            "consent_ref": cp.consent.consent_id,
+            "sector": cp.profile.sector or "—",
+            "needs": needs.model_dump(mode="json"),
+            "product_matches": [m.model_dump(mode="json") for m in pm],
+        }
     cp = tools.tool_ingest(app_id, state["archetype"], state["seed"], state.get("name", "MSME"))
     _write(f"canonical/{app_id}.json", cp.model_dump_json(indent=2))
     _audit(app_id).append(AuditEvent(
@@ -89,8 +100,18 @@ def ingest_node(state: State) -> dict:
          "missing": [s.value for s in cp.missing_sources]},
         consent_ref=cp.consent.consent_id,
     ))
-    return {"canonical": cp.model_dump(mode="json"), "consent_ref": cp.consent.consent_id,
-            "sector": cp.profile.sector or "—"}
+    # D5: classify business needs at ingest time (works with GST alone if AA absent).
+    from ..needs.classifier import classify_needs
+    from ..needs.products import match_products
+    needs = classify_needs(cp)
+    pm = match_products(needs, score=None)
+    return {
+        "canonical": cp.model_dump(mode="json"),
+        "consent_ref": cp.consent.consent_id,
+        "sector": cp.profile.sector or "—",
+        "needs": needs.model_dump(mode="json"),
+        "product_matches": [m.model_dump(mode="json") for m in pm],
+    }
 
 
 def reconcile_node(state: State) -> dict:
@@ -135,8 +156,19 @@ def score_node(state: State) -> dict:
         from ..scoring.pathways import compute_path
         pathway = compute_path(fv, score).model_dump(mode="json")
 
-    return {"score": score.model_dump(mode="json"), "recommendation": rec_dict,
-            "explanation": _explain(score), "pathway": pathway}
+    # D5: re-rank products now that we have the actual score.
+    product_matches = None
+    if state.get("needs"):
+        from ..needs.classifier import NeedsAssessment
+        from ..needs.products import match_products
+        na = NeedsAssessment(**state["needs"])
+        product_matches = [m.model_dump(mode="json") for m in match_products(na, score)]
+
+    out: dict = {"score": score.model_dump(mode="json"), "recommendation": rec_dict,
+                 "explanation": _explain(score), "pathway": pathway}
+    if product_matches is not None:
+        out["product_matches"] = product_matches
+    return out
 
 
 def gate_node(state: State) -> dict:

@@ -13,6 +13,7 @@ import { Landing } from "./components/Landing";
 import { Brand } from "./components/Brand";
 import { LearningLoop } from "./components/LearningLoop";
 import { GBrain } from "./components/GBrain";
+import { NeedsCard } from "./components/NeedsCard";
 import { UploadMSME } from "./components/UploadMSME";
 import { Chip } from "./components/ui";
 import type { AuditEvent, CatalogItem, RunResult } from "./types";
@@ -185,6 +186,11 @@ export default function App() {
             ? <HealthCardSkeleton />
             : run
               ? <>
+                  {run.needs && run.product_matches && (
+                    <div className="mb-6">
+                      <NeedsCard needs={run.needs} productMatches={run.product_matches} />
+                    </div>
+                  )}
                   <HealthCard score={run.score} name={selected?.name ?? ""} pathway={run.pathway} />
                   {run.pathway && <PathToBankability pathway={run.pathway} />}
                 </>

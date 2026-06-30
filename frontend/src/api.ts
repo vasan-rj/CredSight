@@ -2,12 +2,12 @@
 // run the UI standalone against src/mock.ts.
 
 import type {
-  AuditEvent, CatalogItem, LearningSummary, ModelVersion, RecalRecommendation, RunResult,
-  UploadPreview,
+  AuditEvent, CatalogItem, LearningSummary, ModelVersion, NeedsAssessment, ProductMatch,
+  RecalRecommendation, RunResult, UploadPreview,
 } from "./types";
 import {
-  CATALOG, MOCK_AUDIT, MOCK_LEARNING_SUMMARY, MOCK_MODEL_VERSIONS, MOCK_RECOMMENDATIONS,
-  MOCK_RUN, MOCK_RUN_LAKSHMI,
+  CATALOG, MOCK_AUDIT, MOCK_LEARNING_SUMMARY, MOCK_MODEL_VERSIONS, MOCK_NEEDS_LAKSHMI,
+  MOCK_PRODUCT_MATCHES_LAKSHMI, MOCK_RECOMMENDATIONS, MOCK_RUN, MOCK_RUN_LAKSHMI,
 } from "./mock";
 
 const USE_MOCK = false;
@@ -114,4 +114,13 @@ export const api = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ app_id: appId, name }),
         }),
+
+  // Consent-free entry: needs assessment + product matches from GST data alone.
+  getNeedsProfile: (
+    archetype = "thin_file",
+    seed = 42,
+  ): Promise<{ needs: NeedsAssessment; product_matches: ProductMatch[] }> =>
+    USE_MOCK
+      ? Promise.resolve({ needs: MOCK_NEEDS_LAKSHMI, product_matches: MOCK_PRODUCT_MATCHES_LAKSHMI })
+      : http(`/needs/profile?archetype=${archetype}&seed=${seed}`),
 };

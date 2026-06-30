@@ -280,6 +280,36 @@ def model_versions() -> list[dict]:
     return results
 
 
+# ── Needs / product discovery (D5 — consent-free entry) ─────────────────────
+
+@app.get("/api/needs/profile")
+def needs_profile(archetype: str = "thin_file", seed: int = 42) -> dict:
+    """Consent-free entry: derive a needs assessment + product matches from GST data alone.
+    No scoring, no AA required. Returns needs + product_matches so the UI can show a
+    relevant offer before inviting full AA consent."""
+    from ..data.schema import SourceKind
+    from ..agents.tools import tool_ingest
+    from ..needs.classifier import classify_needs
+    from ..needs.products import match_products
+
+    try:
+        cp = tool_ingest(f"needs_{archetype}_{seed}", archetype, seed, "MSME")
+    except ValueError as exc:
+        raise HTTPException(422, f"Unknown archetype: {archetype}") from exc
+    # Simulate GST-only by removing bank + UPI accounts.
+    cp = cp.model_copy(update={
+        "accounts": [],
+        "upi": None,
+        "missing_sources": list({*cp.missing_sources, SourceKind.BANK_AA, SourceKind.UPI}),
+    })
+    needs = classify_needs(cp)
+    matches = match_products(needs, score=None)
+    return {
+        "needs": needs.model_dump(mode="json"),
+        "product_matches": [m.model_dump(mode="json") for m in matches],
+    }
+
+
 # ── Knowledge graph (P3 stub — real cycle in knowledge/organize.py) ──────────
 
 @app.post("/api/knowledge/organize")

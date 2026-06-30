@@ -34,3 +34,7 @@ class Application:
     feature_seed: dict = field(default_factory=dict)
     # Path-to-Bankability (D1): None for Strong-band runs; dict (Pathway.model_dump) otherwise.
     pathway: dict | None = None
+    # Business-needs assessment (NeedsAssessment.model_dump) — computed from GST at ingest.
+    needs_assessment: dict | None = None
+    # Product matches (list[ProductMatch.model_dump]) — scored-aware when score present.
+    product_matches: list[dict] | None = None

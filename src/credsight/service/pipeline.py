@@ -13,6 +13,8 @@ from pathlib import Path
 
 from ..governance.audit import AuditEvent, AuditLog, EventType
 from ..governance.hitl import requires_human
+from ..needs.classifier import classify_needs
+from ..needs.products import match_products
 from ..reconciliation.rules import Flag, Severity
 from ..scoring.model import predict
 from ..scoring.pathways import compute_path
@@ -36,7 +38,7 @@ def _explanation(score, confidence_note: bool) -> str:
 
 
 def assess(fv: FeatureVector, *, name: str, sector: str, consent_ref: str,
-           flags: list[Flag] | None = None) -> Application:
+           flags: list[Flag] | None = None, canonical_profile=None) -> Application:
     """Run the full deterministic assessment for one applicant and emit audit events."""
     flags = flags or []
     log = AuditLog(fv.app_id, base_dir=_AUDIT_DIR)
@@ -80,10 +82,20 @@ def assess(fv: FeatureVector, *, name: str, sector: str, consent_ref: str,
     if score.composite < 750:
         pathway = compute_path(fv, score).model_dump(mode="json")
 
+    # Needs assessment + product matching (runs from canonical profile when available).
+    needs_dict = None
+    product_matches_list = None
+    if canonical_profile is not None:
+        needs = classify_needs(canonical_profile)
+        matches = match_products(needs, score)
+        needs_dict = needs.model_dump(mode="json")
+        product_matches_list = [m.model_dump(mode="json") for m in matches]
+
     return Application(
         app_id=fv.app_id, name=name, sector=sector, score=score, recommendation=rec,
         hitl_reasons=reasons, explanation=explanation, status=status,
         consent_ref=consent_ref, feature_seed=dict(fv.features), pathway=pathway,
+        needs_assessment=needs_dict, product_matches=product_matches_list,
     )
 
 

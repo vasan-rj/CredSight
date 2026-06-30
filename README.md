@@ -8,6 +8,25 @@ CredSight is a production-grade agentic underwriting OS that ingests every avail
 
 ---
 
+## Screenshots
+
+**Landing — the product pitch in one view**
+![Landing](docs/screenshots/01-landing.png)
+
+**Financial Health Card — composite score, five dimensions, Path to Bankability**
+![Health Card](docs/screenshots/02-health-card.png)
+
+**Underwriter Console — HITL gate triggered, SHAP drivers, full rationale before any action**
+![HITL Console](docs/screenshots/03-hitl-console.png)
+
+**Audit Trail — append-only, every step traced to source, model version, and human**
+![Audit Trail](docs/screenshots/04-audit-trail.png)
+
+**Learning Loop — override patterns surface as recalibration recommendations; model never auto-updates**
+![Learning Loop](docs/screenshots/05-learning-loop.png)
+
+---
+
 ## Design principles
 
 Three invariants that are non-negotiable in any deployment:
